@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cardiac Auscultation Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0eeea;
+  --border:#e2dfd8;--border2:#ccc9c0;
+  --text:#1a1916;--text2:#6b6860;--text3:#b0ada6;
+  --accent:#1a5fa8;--accent-bg:#eaf1fb;--accent-border:#b8d0f0;
+  --green:#1a7a3a;--green-bg:#eaf6ee;--green-border:#a8dbb8;
+  --red:#b83232;--red-bg:#fdf0f0;--red-border:#f0b8b8;
+  --amber:#8a5e00;
+  --r:10px;--rlg:14px;--sh:0 1px 3px rgba(0,0,0,.06),0 3px 12px rgba(0,0,0,.04);
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.shell{max-width:1000px;margin:0 auto;padding:.75rem .75rem 2rem}
+header{text-align:center;margin-bottom:.9rem;padding-bottom:.9rem;border-bottom:1px solid var(--border)}
+header h1{font-family:'DM Serif Display',serif;font-size:1.5rem;font-weight:400;letter-spacing:-.01em}
+header p{font-size:.75rem;color:var(--text2);margin-top:2px}
+.mode-tabs{display:flex;gap:5px;justify-content:center;margin-bottom:1rem}
+.mode-tab{padding:6px 18px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;cursor:pointer;transition:all .15s}
+.mode-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* top section */
+.top-section{display:grid;grid-template-columns:100px 1fr 100px;gap:6px;align-items:center;margin-bottom:.75rem}
+.man-col{display:flex;flex-direction:column;gap:4px}
+.man-col-label{font-size:.62rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);text-align:center;margin-bottom:3px}
+.mbtn{padding:5px 4px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.68rem;cursor:pointer;text-align:center;transition:all .15s;line-height:1.3;width:100%}
+.mbtn:hover{border-color:var(--border2);color:var(--text);background:var(--surface2)}
+.mbtn.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+.mb{display:block;font-size:.6rem;font-weight:500;padding:1px 4px;border-radius:20px;margin-top:1px}
+.up{background:var(--green-bg);color:var(--green)}.down{background:var(--red-bg);color:var(--red)}.neutral{background:var(--surface2);color:var(--text3)}
+.body-wrap{display:flex;justify-content:center}
+.body-svg{width:180px;display:block;overflow:visible}
+
+/* auscultation zones */
+.azone{cursor:pointer}
+.azone .ring{fill-opacity:.12;stroke-width:1.5;transition:all .25s}
+.azone:hover .ring{fill-opacity:.28;stroke-width:2.5}
+.azone.active .ring{fill-opacity:.38;stroke-width:3}
+.azone .pring{fill:none;stroke-width:1.5;opacity:0}
+.azone.playing .pring{animation:pa 1.3s ease-out infinite}
+@keyframes pa{0%{r:20;opacity:.7}100%{r:36;opacity:0}}
+.azone.highlight .ring{fill-opacity:.5;stroke-width:3.5;animation:hl 1s ease-in-out infinite alternate}
+@keyframes hl{0%{fill-opacity:.35}100%{fill-opacity:.65}}
+.radarr{opacity:0;transition:opacity .4s;pointer-events:none}
+.radarr.show{opacity:1}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:4px}
+.legitem{display:flex;align-items:center;gap:3px;font-size:.66rem;color:var(--text2)}
+.legdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:.9rem 1rem;box-shadow:var(--sh)}
+.card+.card{margin-top:.6rem}
+.clabel{font-size:.65rem;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:7px}
+.placeholder{padding:1.5rem .5rem;text-align:center;color:var(--text3);font-size:.78rem;line-height:1.6}
+.placeholder svg{width:26px;height:26px;opacity:.25;display:block;margin:0 auto 8px;stroke:var(--text3)}
+.area-header{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.adot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.aname{font-size:.76rem;font-weight:500;color:var(--text2)}
+.mpills{display:flex;flex-wrap:wrap;gap:4px}
+.mpill{padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.73rem;cursor:pointer;transition:all .15s}
+.mpill:hover{background:var(--surface2);color:var(--text)}
+.mpill.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+.waveform{width:100%;height:52px;display:block;border-radius:5px;margin:8px 0 5px}
+.player-row{display:flex;align-items:center;gap:8px}
+.pbtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.pbtn:hover{background:var(--surface2);border-color:var(--accent)}
+.pbtn.playing{background:var(--accent);border-color:var(--accent)}
+.pbtn svg{width:12px;height:12px;fill:var(--text)}
+.pbtn.playing svg{fill:#fff}
+.vtrack{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;border:1px solid var(--border)}
+.vfill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s ease}
+.vtext{font-size:.68rem;color:var(--text2);min-width:46px;text-align:right}
+.anote{display:flex;align-items:center;gap:4px;font-size:.64rem;color:var(--text3);margin-top:4px}
+.andot{width:5px;height:5px;border-radius:50%;background:var(--amber);flex-shrink:0}
+.mname{font-family:'DM Serif Display',serif;font-size:1.1rem;font-weight:400;color:var(--text);margin-bottom:2px}
+.msub{font-size:.74rem;color:var(--text2);line-height:1.5}
+.mtags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.tag{font-size:.64rem;padding:2px 7px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--surface2)}
+
+/* walkthrough */
+.wtnav{display:flex;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);margin-bottom:.75rem}
+.wtsb{flex:1;padding:7px 3px;font-size:.68rem;font-weight:500;font-family:'DM Sans',sans-serif;border:none;background:var(--surface2);color:var(--text3);cursor:pointer;border-right:1px solid var(--border);transition:all .15s;text-align:center}
+.wtsb:last-child{border-right:none}
+.wtsb.active{background:var(--accent);color:#fff}
+.wtsb.done{background:var(--surface);color:var(--accent)}
+.wtpanel{display:none}.wtpanel.active{display:block}
+.wtbot{display:flex;justify-content:flex-end;margin-top:10px}
+.wtnext{padding:6px 16px;border-radius:20px;border:1px solid var(--accent-border);background:var(--accent-bg);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;cursor:pointer;transition:all .15s}
+.wtnext:hover{background:var(--accent);color:#fff}
+.bacard{border-radius:var(--r);padding:9px 12px;margin-bottom:8px;border:1px solid var(--accent-border);background:var(--accent-bg)}
+.baname{font-size:.82rem;font-weight:500;margin-bottom:2px}
+.badesc{font-size:.72rem;color:var(--text2)}
+.radtext{font-size:.76rem;color:var(--text2);line-height:1.55}
+.explbox{margin-top:5px;padding:7px 10px;border-radius:var(--r);background:var(--accent-bg);border:1px solid var(--accent-border);border-left:3px solid var(--accent);font-size:.74rem;color:var(--text2);line-height:1.5}
+.manrow{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.76rem;cursor:pointer;text-align:left;transition:all .15s;width:100%;margin-bottom:4px}
+.manrow:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.manrow.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+
+/* quiz */
+.quiz-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.qscore{display:flex;gap:7px}
+.spill{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:4px 11px;font-size:.74rem;color:var(--text2)}
+.spill strong{color:var(--text);margin-left:2px}
+.ggrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px}
+@media(max-width:400px){.ggrid{grid-template-columns:1fr}}
+.gbtn{padding:8px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.74rem;cursor:pointer;text-align:left;transition:all .15s}
+.gbtn:hover:not(:disabled){background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.gbtn.correct{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.gbtn.wrong{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.gbtn:disabled{cursor:default;opacity:.75}
+.rbox{margin-top:9px;padding:9px 12px;border-radius:var(--r);font-size:.78rem;line-height:1.5}
+.rbox.correct{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+.rbox.wrong{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red)}
+.nbtn{margin-top:7px;padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer;transition:all .15s}
+.nbtn:hover{background:var(--surface2);color:var(--text)}
+
+@media(max-width:600px){
+  .top-section{grid-template-columns:80px 1fr 80px;gap:4px}
+  .mbtn{font-size:.62rem;padding:4px 3px}
+  .body-svg{width:150px}
+  .q-area-grid{grid-template-columns:repeat(5,1fr)}
+}
+@media(max-width:400px){
+  .top-section{grid-template-columns:72px 1fr 72px;gap:3px}
+  .body-svg{width:130px}
+  .q-area-grid{grid-template-columns:repeat(3,1fr) repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1>Cardiac Auscultation Simulator</h1>
+    <p>Tap an area · explore murmurs · apply dynamic manoeuvres</p>
+  </header>
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('learn')">Learn</button>
+    <button class="mode-tab" onclick="setMode('quiz')">Quiz</button>
+  </div>
+
+  <div class="top-section">
+    <!-- LEFT manoeuvres -->
+    <div class="man-col">
+      <div class="man-col-label">Manoeuvres</div>
+      <button class="mbtn" id="gbtn-inspire" onclick="triggerMan('inspire')">Inspiration<span class="mb up">↑ R-sided</span></button>
+      <button class="mbtn" id="gbtn-expire"  onclick="triggerMan('expire')">Expiration<span class="mb up">↑ L-sided</span></button>
+      <button class="mbtn" id="gbtn-squat"   onclick="triggerMan('squat')">Squatting<span class="mb up">↑ preload</span></button>
+      <button class="mbtn" id="gbtn-stand"   onclick="triggerMan('stand')">Standing<span class="mb up">↑ HOCM</span></button>
+    </div>
+
+    <!-- BODY -->
+    <div class="body-wrap">
+      <svg class="body-svg" id="body-svg" viewBox="0 0 160 480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ab" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#1a5fa8"/></marker>
+          <marker id="ap" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#a8326e"/></marker>
+        </defs>
+        <g id="g-squat" style="transform-origin:80px 420px;transition:transform .6s ease-in-out">
+          <g id="g-lean" style="transform-origin:80px 200px;transition:transform .6s ease-in-out">
+            <!-- head -->
+            <circle cx="80" cy="28" r="22" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1.2"/>
+            <ellipse cx="57" cy="28" rx="4" ry="6" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1"/>
+            <ellipse cx="103" cy="28" rx="4" ry="6" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1"/>
+            <g id="eyes-normal">
+              <ellipse cx="72" cy="25" rx="4" ry="3" fill="#fff" stroke="#c8c4bc" stroke-width=".8"/>
+              <circle cx="72" cy="26" r="2" fill="#4a3828"/>
+              <ellipse cx="88" cy="25" rx="4" ry="3" fill="#fff" stroke="#c8c4bc" stroke-width=".8"/>
+              <circle cx="88" cy="26" r="2" fill="#4a3828"/>
+            </g>
+            <path d="M72,35 Q80,38 88,35" fill="none" stroke="#c8c4bc" stroke-width="1" stroke-linecap="round"/>
+            <!-- valsalva face -->
+            <g id="g-vf" style="opacity:0;transition:opacity .4s">
+              <ellipse cx="63" cy="30" rx="8" ry="6" fill="#f0a0a0" opacity=".4"/>
+              <ellipse cx="97" cy="30" rx="8" ry="6" fill="#f0a0a0" opacity=".4"/>
+              <ellipse cx="80" cy="36" rx="5" ry="3" fill="#c87070" stroke="#a85050" stroke-width=".8"/>
+              <ellipse cx="80" cy="36" rx="2.5" ry="1.5" fill="#a85050"/>
+              <path d="M58,18 Q55,14 58,10" fill="none" stroke="#c8c4bc" stroke-width=".8"/>
+              <path d="M102,18 Q105,14 102,10" fill="none" stroke="#c8c4bc" stroke-width=".8"/>
+              <path d="M68,24 Q72,22 76,24" fill="none" stroke="#4a3828" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M84,24 Q88,22 92,24" fill="none" stroke="#4a3828" stroke-width="1.2" stroke-linecap="round"/>
+            </g>
+            <!-- neck -->
+            <rect x="72" y="49" width="16" height="14" rx="5" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1"/>
+            <!-- breath group -->
+            <g id="g-breath" style="transform-origin:80px 130px;transition:transform .7s ease-in-out">
+              <path d="M42,64 Q28,76 24,104 L18,190 Q16,220 26,242 Q48,288 80,292 Q112,288 134,242 Q144,220 142,190 L136,104 Q132,76 118,64 Q100,52 80,52 Q60,52 42,64 Z" fill="#fafaf8" stroke="#ddd9d0" stroke-width="1.2"/>
+              <path d="M56,68 Q68,62 80,64 Q92,62 104,68" fill="none" stroke="#c8c4bc" stroke-width="1.2"/>
+              <line x1="80" y1="68" x2="80" y2="240" stroke="#e0ddd6" stroke-width="1" stroke-dasharray="3,3"/>
+              <path d="M66,90 Q56,100 53,114" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+              <path d="M94,90 Q104,100 107,114" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+              <path d="M58,114 Q46,128 44,146" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+              <path d="M102,114 Q114,128 116,146" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+              <path d="M44,146 Q36,162 36,180" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+              <path d="M116,146 Q124,162 124,180" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+              <text x="18" y="84" font-size="7" fill="#c0bdb5" font-family="DM Sans,sans-serif">pt R</text>
+              <text x="120" y="84" font-size="7" fill="#c0bdb5" font-family="DM Sans,sans-serif">pt L</text>
+
+              <!-- AORTIC: patient R → viewer LEFT -->
+              <g class="azone" id="zone-aortic" onclick="handleZoneClick('aortic')">
+                <circle class="pring" cx="62" cy="96" r="18" stroke="#1a5fa8"/>
+                <circle class="ring" cx="62" cy="96" r="18" fill="#1a5fa8" stroke="#1a5fa8"/>
+                <text x="62" y="93" text-anchor="middle" font-size="7" font-weight="500" fill="#1a5fa8" font-family="DM Sans,sans-serif">Aortic</text>
+                <text x="62" y="101" text-anchor="middle" font-size="6.5" fill="#5a8fc8" font-family="DM Sans,sans-serif">R 2nd</text>
+              </g>
+              <!-- PULMONARY: patient L → viewer RIGHT -->
+              <g class="azone" id="zone-pulmonary" onclick="handleZoneClick('pulmonary')">
+                <circle class="pring" cx="98" cy="96" r="18" stroke="#1a7a3a"/>
+                <circle class="ring" cx="98" cy="96" r="18" fill="#1a7a3a" stroke="#1a7a3a"/>
+                <text x="98" y="93" text-anchor="middle" font-size="7" font-weight="500" fill="#1a7a3a" font-family="DM Sans,sans-serif">Pulm.</text>
+                <text x="98" y="101" text-anchor="middle" font-size="6.5" fill="#4aa870" font-family="DM Sans,sans-serif">L 2nd</text>
+              </g>
+              <!-- ERB'S -->
+              <g class="azone" id="zone-erbs" onclick="handleZoneClick('erbs')">
+                <circle class="pring" cx="80" cy="128" r="13" stroke="#6840b8"/>
+                <circle class="ring" cx="80" cy="128" r="13" fill="#6840b8" stroke="#6840b8"/>
+                <text x="80" y="125" text-anchor="middle" font-size="6.5" font-weight="500" fill="#6840b8" font-family="DM Sans,sans-serif">Erb's</text>
+                <text x="80" y="133" text-anchor="middle" font-size="6" fill="#9070d8" font-family="DM Sans,sans-serif">3rd</text>
+              </g>
+              <!-- TRICUSPID -->
+              <g class="azone" id="zone-tricuspid" onclick="handleZoneClick('tricuspid')">
+                <circle class="pring" cx="92" cy="158" r="18" stroke="#8a5e00"/>
+                <circle class="ring" cx="92" cy="158" r="18" fill="#8a5e00" stroke="#8a5e00"/>
+                <text x="92" y="155" text-anchor="middle" font-size="7" font-weight="500" fill="#8a5e00" font-family="DM Sans,sans-serif">Trisp.</text>
+                <text x="92" y="163" text-anchor="middle" font-size="6.5" fill="#b88a30" font-family="DM Sans,sans-serif">LLSB</text>
+              </g>
+              <!-- MITRAL -->
+              <g class="azone" id="zone-mitral" onclick="handleZoneClick('mitral')">
+                <circle class="pring" cx="104" cy="196" r="18" stroke="#a8326e"/>
+                <circle class="ring" cx="104" cy="196" r="18" fill="#a8326e" stroke="#a8326e"/>
+                <text x="104" y="193" text-anchor="middle" font-size="7" font-weight="500" fill="#a8326e" font-family="DM Sans,sans-serif">Mitral</text>
+                <text x="104" y="201" text-anchor="middle" font-size="6.5" fill="#c86898" font-family="DM Sans,sans-serif">Apex</text>
+              </g>
+
+              <!-- radiation arrows -->
+              <g id="rad-carotids" class="radarr">
+                <line x1="69" y1="80" x2="69" y2="46" stroke="#1a5fa8" stroke-width="1.2" stroke-dasharray="2.5,2.5" marker-end="url(#ab)"/>
+                <text x="52" y="44" font-size="6.5" fill="#1a5fa8" font-family="DM Sans,sans-serif">carotids</text>
+              </g>
+              <g id="rad-axilla" class="radarr">
+                <line x1="118" y1="202" x2="144" y2="218" stroke="#a8326e" stroke-width="1.2" stroke-dasharray="2.5,2.5" marker-end="url(#ap)"/>
+                <text x="138" y="228" font-size="6.5" fill="#a8326e" font-family="DM Sans,sans-serif">axilla</text>
+              </g>
+            </g>
+
+            <!-- arms -->
+            <path d="M24,108 Q10,130 12,165 Q13,180 18,190" fill="none" stroke="#fdf8f3" stroke-width="14" stroke-linecap="round"/>
+            <path d="M24,108 Q10,130 12,165 Q13,180 18,190" fill="none" stroke="#ddd9d0" stroke-width="1" stroke-linecap="round"/>
+            <ellipse cx="16" cy="194" rx="10" ry="7" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1"/>
+            <path d="M136,108 Q150,130 148,165 Q147,180 142,190" fill="none" stroke="#fdf8f3" stroke-width="14" stroke-linecap="round"/>
+            <path d="M136,108 Q150,130 148,165 Q147,180 142,190" fill="none" stroke="#ddd9d0" stroke-width="1" stroke-linecap="round"/>
+            <ellipse cx="144" cy="194" rx="10" ry="7" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1"/>
+
+            <!-- handgrip overlay -->
+            <g id="g-hg" style="opacity:0;transition:opacity .4s">
+              <ellipse cx="62" cy="250" rx="14" ry="9" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1.2"/>
+              <line x1="52" y1="245" x2="52" y2="258" stroke="#ddd9d0" stroke-width=".8"/>
+              <line x1="57" y1="243" x2="57" y2="259" stroke="#ddd9d0" stroke-width=".8"/>
+              <line x1="62" y1="242" x2="62" y2="259" stroke="#ddd9d0" stroke-width=".8"/>
+              <line x1="67" y1="243" x2="67" y2="259" stroke="#ddd9d0" stroke-width=".8"/>
+              <ellipse cx="98" cy="250" rx="14" ry="9" fill="#fdf8f3" stroke="#ddd9d0" stroke-width="1.2"/>
+              <line x1="88" y1="245" x2="88" y2="258" stroke="#ddd9d0" stroke-width=".8"/>
+              <line x1="93" y1="243" x2="93" y2="259" stroke="#ddd9d0" stroke-width=".8"/>
+              <line x1="98" y1="242" x2="98" y2="259" stroke="#ddd9d0" stroke-width=".8"/>
+              <line x1="103" y1="243" x2="103" y2="259" stroke="#ddd9d0" stroke-width=".8"/>
+              <path d="M74,247 Q80,244 86,247" fill="none" stroke="#c8c4bc" stroke-width="1"/>
+              <text x="80" y="266" text-anchor="middle" font-size="7" fill="#8a6040" font-family="DM Sans,sans-serif">isometric grip</text>
+            </g>
+          </g>
+
+          <!-- pelvis -->
+          <path d="M30,290 Q20,300 22,318 Q24,330 38,335 L122,335 Q136,330 138,318 Q140,300 130,290 Z" fill="#f0ede8" stroke="#ddd9d0" stroke-width="1"/>
+
+          <!-- legs -->
+          <g id="g-leg-left" style="transform-origin:50px 335px;transition:transform .6s ease-in-out">
+            <path d="M38,335 Q30,360 32,390 Q33,400 38,408" fill="none" stroke="#fdf8f3" stroke-width="22" stroke-linecap="round"/>
+            <path d="M38,335 Q30,360 32,390 Q33,400 38,408" fill="none" stroke="#ddd9d0" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="37" cy="408" r="10" fill="#f0ede8" stroke="#ddd9d0" stroke-width="1"/>
+            <g id="g-shin-left" style="transform-origin:37px 408px;transition:transform .6s ease-in-out">
+              <path d="M37,418 Q35,445 36,468" fill="none" stroke="#fdf8f3" stroke-width="18" stroke-linecap="round"/>
+              <path d="M37,418 Q35,445 36,468" fill="none" stroke="#ddd9d0" stroke-width="1" stroke-linecap="round"/>
+              <ellipse cx="36" cy="470" rx="14" ry="7" fill="#e8e4dc" stroke="#ddd9d0" stroke-width="1"/>
+            </g>
+          </g>
+          <g id="g-leg-right" style="transform-origin:110px 335px;transition:transform .6s ease-in-out">
+            <path d="M122,335 Q130,360 128,390 Q127,400 122,408" fill="none" stroke="#fdf8f3" stroke-width="22" stroke-linecap="round"/>
+            <path d="M122,335 Q130,360 128,390 Q127,400 122,408" fill="none" stroke="#ddd9d0" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="123" cy="408" r="10" fill="#f0ede8" stroke="#ddd9d0" stroke-width="1"/>
+            <g id="g-shin-right" style="transform-origin:123px 408px;transition:transform .6s ease-in-out">
+              <path d="M123,418 Q125,445 124,468" fill="none" stroke="#fdf8f3" stroke-width="18" stroke-linecap="round"/>
+              <path d="M123,418 Q125,445 124,468" fill="none" stroke="#ddd9d0" stroke-width="1" stroke-linecap="round"/>
+              <ellipse cx="124" cy="470" rx="14" ry="7" fill="#e8e4dc" stroke="#ddd9d0" stroke-width="1"/>
+            </g>
+          </g>
+
+          <!-- manoeuvre badge -->
+          <rect id="badge-bg" x="20" y="300" width="120" height="20" rx="10" fill="#1a5fa8" opacity="0" style="transition:opacity .3s"/>
+          <text id="badge-txt" x="80" y="314" text-anchor="middle" font-size="8" font-weight="500" fill="white" font-family="DM Sans,sans-serif" opacity="0" style="transition:opacity .3s"></text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- RIGHT manoeuvres -->
+    <div class="man-col">
+      <div class="man-col-label">&nbsp;</div>
+      <button class="mbtn" id="gbtn-valsalva"  onclick="triggerMan('valsalva')">Valsalva<span class="mb down">↓ preload</span></button>
+      <button class="mbtn" id="gbtn-lean"      onclick="triggerMan('lean')">Lean fwd<span class="mb up">↑ AR, AS</span></button>
+      <button class="mbtn" id="gbtn-handgrip"  onclick="triggerMan('handgrip')">Handgrip<span class="mb up">↑ MR, AR</span></button>
+      <button class="mbtn" id="gbtn-lld"       onclick="triggerMan('lld')">Left lat.<span class="mb up">↑ MS, S3</span></button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legitem"><span class="legdot" style="background:#1a5fa8"></span>Aortic</div>
+    <div class="legitem"><span class="legdot" style="background:#1a7a3a"></span>Pulmonary</div>
+    <div class="legitem"><span class="legdot" style="background:#8a5e00"></span>Tricuspid</div>
+    <div class="legitem"><span class="legdot" style="background:#a8326e"></span>Mitral</div>
+    <div class="legitem"><span class="legdot" style="background:#6840b8"></span>Erb's</div>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div style="margin-top:.6rem" id="info-panel">
+
+    <!-- LEARN MODE -->
+    <div id="learn-mode">
+      <div id="learn-ph" class="card">
+        <div class="placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          Tap an auscultation area on the chest to begin
+        </div>
+      </div>
+      <div id="learn-content" style="display:none">
+        <div class="card">
+          <div class="area-header"><div class="adot" id="l-adot"></div><div class="aname" id="l-aname"></div></div>
+          <div class="clabel">Select a murmur</div>
+          <div class="mpills" id="l-pills"></div>
+        </div>
+        <div class="card" id="l-wt" style="display:none">
+          <div class="wtnav">
+            <button class="wtsb active" onclick="goStep(0)">1. Listen</button>
+            <button class="wtsb" onclick="goStep(1)">2. Location</button>
+            <button class="wtsb" onclick="goStep(2)">3. Manoeuvres</button>
+          </div>
+          <div class="wtpanel active" id="ws0">
+            <div class="mname" id="l-mname"></div>
+            <div class="msub" id="l-msub"></div>
+            <div class="mtags" id="l-mtags"></div>
+            <canvas class="waveform" id="lcanvas"></canvas>
+            <div class="player-row">
+              <button class="pbtn" id="lpbtn" onclick="toggleLearnPlay()"><svg id="lpico" viewBox="0 0 16 16"><polygon points="4,2 14,8 4,14"/></svg></button>
+              <div class="vtrack"><div class="vfill" id="lvf" style="width:70%"></div></div>
+              <div class="vtext" id="lvt">—</div>
+            </div>
+            <div class="anote"><span class="andot"></span>Synthesised audio — replace with .mp3/.mp4 files (see README)</div>
+            <div class="wtbot"><button class="wtnext" onclick="goStep(1)">Where is it loudest? →</button></div>
+          </div>
+          <div class="wtpanel" id="ws1">
+            <div class="bacard" id="l-bacard">
+              <div class="baname" id="l-baname"></div>
+              <div class="badesc" id="l-badesc"></div>
+            </div>
+            <div class="radtext" id="l-radtxt"></div>
+            <div class="wtbot"><button class="wtnext" onclick="goStep(2)">Which manoeuvres help? →</button></div>
+          </div>
+          <div class="wtpanel" id="ws2">
+            <div style="font-size:.74rem;color:var(--text2);margin-bottom:8px">Tap a manoeuvre to see and hear the effect:</div>
+            <div id="l-manlist"></div>
+            <div id="l-expl"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ MODE -->
+    <div id="quiz-mode" style="display:none">
+      <div class="card" id="quiz-card">
+        <div class="quiz-top">
+          <div class="qscore">
+            <div class="spill">Correct <strong id="qsc">0</strong></div>
+            <div class="spill">Total <strong id="qst">0</strong></div>
+          </div>
+          <button class="wtnext" id="new-q-btn" onclick="newQuiz()" style="display:none">New murmur</button>
+        </div>
+        <div id="quiz-inner">
+          <div class="placeholder" style="padding:1.2rem 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+            Press <strong>New murmur</strong> to begin, then tap areas on the chest to listen
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  AUDIO FILE MAP — swap null → 'filename'
+// ════════════════════════════════════════
+const AF={
+  AS:'AS.mp4', AR:null, MS:null, MR:null,
+  PS:null, PR:null, TS:null, TR:null,
+  HOCM:null, MVP:null, VSD:null, ASD:null, PDA:null,
+  GRAHAM_STEELL:null, INNOCENT:null, CAREY_COOMBS:null, AUSTIN_FLINT:null,
+};
+
+// ════════════════════════════════════════
+//  AREA VOLUME MAP
+//  For each murmur, how loud is it at each area?
+//  1.0 = best area, lower = heard but quieter
+// ════════════════════════════════════════
+const AREA_VOLS={
+  AS:  {aortic:1.0, erbs:0.65, pulmonary:0.35, tricuspid:0.25, mitral:0.40},
+  AR:  {erbs:1.0,   aortic:0.7, mitral:0.55,   pulmonary:0.35, tricuspid:0.20},
+  MS:  {mitral:1.0, erbs:0.45, tricuspid:0.30, pulmonary:0.20, aortic:0.15},
+  MR:  {mitral:1.0, erbs:0.55, tricuspid:0.35, pulmonary:0.25, aortic:0.20},
+  PS:  {pulmonary:1.0, erbs:0.50, aortic:0.30, tricuspid:0.25, mitral:0.15},
+  PR:  {pulmonary:1.0, erbs:0.60, aortic:0.30, tricuspid:0.20, mitral:0.15},
+  TR:  {tricuspid:1.0, erbs:0.55, mitral:0.35, pulmonary:0.25, aortic:0.15},
+  TS:  {tricuspid:1.0, erbs:0.45, mitral:0.30, pulmonary:0.20, aortic:0.15},
+  HOCM:{erbs:1.0, tricuspid:0.70, mitral:0.50, aortic:0.35, pulmonary:0.20},
+  MVP: {mitral:1.0, erbs:0.50, tricuspid:0.30, pulmonary:0.15, aortic:0.10},
+  VSD: {erbs:1.0, tricuspid:0.75, mitral:0.55, aortic:0.40, pulmonary:0.35},
+  ASD: {pulmonary:1.0, erbs:0.55, aortic:0.35, tricuspid:0.25, mitral:0.15},
+  PDA: {pulmonary:1.0, erbs:0.55, aortic:0.40, tricuspid:0.20, mitral:0.15},
+  GRAHAM_STEELL:{erbs:1.0, pulmonary:0.75, aortic:0.30, tricuspid:0.20, mitral:0.15},
+  INNOCENT:     {pulmonary:1.0, erbs:0.55, aortic:0.45, tricuspid:0.20, mitral:0.15},
+  CAREY_COOMBS: {mitral:1.0, erbs:0.45, tricuspid:0.25, pulmonary:0.15, aortic:0.10},
+  AUSTIN_FLINT: {mitral:1.0, erbs:0.50, tricuspid:0.20, pulmonary:0.15, aortic:0.10},
+};
+
+const AREAS={
+  aortic:   {name:'Aortic area',    color:'#1a5fa8', loc:'Right 2nd ICS, parasternal',        murmurs:['AS','AR']},
+  pulmonary:{name:'Pulmonary area', color:'#1a7a3a', loc:'Left 2nd ICS, parasternal',          murmurs:['PS','PR','ASD','INNOCENT']},
+  tricuspid:{name:'Tricuspid area', color:'#8a5e00', loc:'LLSB, 4th–5th ICS',                 murmurs:['TR','TS']},
+  mitral:   {name:'Mitral area',    color:'#a8326e', loc:'Apex, 5th ICS mid-clavicular line',  murmurs:['MR','MS','MVP','CAREY_COOMBS']},
+  erbs:     {name:"Erb's point",    color:'#6840b8', loc:'Left 3rd ICS, parasternal',          murmurs:['AR','HOCM','VSD','AUSTIN_FLINT','GRAHAM_STEELL','PDA']},
+};
+const AREA_KEYS=['aortic','pulmonary','erbs','tricuspid','mitral'];
+const AREA_LABELS={aortic:'Aortic',pulmonary:'Pulm.',erbs:"Erb's",tricuspid:'Tricusp.',mitral:'Mitral'};
+const AREA_COLORS={aortic:'#1a5fa8',pulmonary:'#1a7a3a',erbs:'#6840b8',tricuspid:'#8a5e00',mitral:'#a8326e'};
+
+const M={
+  AS:{name:'Aortic stenosis',short:'Ejection systolic · crescendo-decrescendo · radiates to carotids',tags:['Systolic','Ejection','Radiates: carotids'],wave:{t:'ejs',f:280,v:.72},ba:'aortic',bn:'Aortic area (R 2nd ICS)',bd:'Diaphragm at right 2nd ICS. Lean the patient forward at end-expiration.',rad:'Radiates to both carotids. Gallavardin phenomenon may transmit a musical component to the apex.',rid:'rad-carotids',
+    mans:[{l:'Lean forward + expiration',e:'up',d:'Brings aortic root closer to chest wall → ↑ AS'},{l:'Squatting / leg raise',e:'up',d:'↑ preload and afterload → augments gradient across stenotic valve → ↑ AS'},{l:'Valsalva',e:'down',d:'↓ preload → less gradient → ↓ AS (helps distinguish from HOCM)'},{l:'Handgrip',e:'down',d:'↑ afterload → reduces forward flow → ↓ AS'}]},
+  AR:{name:'Aortic regurgitation',short:"Early diastolic · high-pitched decrescendo · best at Erb's",tags:['Diastolic','Decrescendo','High-pitched'],wave:{t:'edi',f:220,v:.55},ba:'erbs',bn:"Erb's point (L 3rd ICS)",bd:'Lean patient forward, end-expiration. Diaphragm at left 3rd ICS.',rad:'May radiate to the apex. Severe AR may cause an Austin Flint rumble.',rid:null,
+    mans:[{l:'Lean forward + expiration',e:'up',d:'Classic position — forward lean + end-expiration brings the aortic root to the chest wall'},{l:'Handgrip',e:'up',d:'↑ afterload → ↑ regurgitant fraction → ↑ AR'},{l:'Squatting',e:'up',d:'↑ afterload → ↑ AR volume'}]},
+  MS:{name:'Mitral stenosis',short:'Mid-diastolic rumble · opening snap · use bell at apex',tags:['Diastolic','Rumble','Low-pitched','Use bell'],wave:{t:'mdi',f:120,v:.5},ba:'mitral',bn:'Mitral area (Apex)',bd:'Left lateral decubitus, bell lightly applied at apex.',rad:'Does not radiate. Opening snap best heard medial to apex.',rid:null,
+    mans:[{l:'Left lateral decubitus + bell',e:'up',d:'Essential — rolls apex to chest wall; bell captures the low-frequency rumble'},{l:'Expiration',e:'up',d:'↑ left-sided murmurs'},{l:'Exercise / tachycardia',e:'up',d:'↑ flow → ↑ gradient → louder rumble'},{l:'Inspiration',e:'down',d:'↓ left-sided murmurs during inspiration'}]},
+  MR:{name:'Mitral regurgitation',short:'Pansystolic · blowing · radiates to axilla',tags:['Systolic','Pansystolic','Radiates: axilla'],wave:{t:'pan',f:300,v:.72},ba:'mitral',bn:'Mitral area (Apex)',bd:'Diaphragm at apex. Left lateral decubitus helps.',rad:'Radiates to the left axilla.',rid:'rad-axilla',
+    mans:[{l:'Left lateral decubitus',e:'up',d:'Rolls apex to chest wall → easier to hear MR'},{l:'Expiration',e:'up',d:'↑ left-sided murmurs'},{l:'Handgrip',e:'up',d:'↑ afterload → ↑ LV pressure → ↑ regurgitant flow'},{l:'Squatting',e:'up',d:'↑ preload and afterload → augment regurgitant volume'},{l:'Valsalva',e:'down',d:'↓ preload → ↓ regurgitant volume'}]},
+  PS:{name:'Pulmonary stenosis',short:'Ejection systolic · wide split S2 · louder with inspiration',tags:['Systolic','Ejection','Right-sided'],wave:{t:'ejs',f:320,v:.65},ba:'pulmonary',bn:'Pulmonary area (L 2nd ICS)',bd:'Diaphragm at left 2nd ICS.',rad:'May radiate to the left shoulder.',rid:null,
+    mans:[{l:'Inspiration',e:'up',d:"Carvallo's: ↑ venous return → right heart fills → ↑ PS"},{l:'Expiration',e:'down',d:'↓ venous return → ↓ right-sided murmurs'}]},
+  PR:{name:'Pulmonary regurgitation',short:'Early diastolic · left sternal edge · louder with inspiration',tags:['Diastolic','Right-sided'],wave:{t:'edi',f:200,v:.48},ba:'pulmonary',bn:'Pulmonary area / L 2nd–3rd ICS',bd:'Left sternal edge, lean forward.',rad:'Does not radiate widely.',rid:null,
+    mans:[{l:'Inspiration',e:'up',d:'↑ right-sided flow → ↑ PR'},{l:'Lean forward',e:'up',d:'Brings pulmonary valve closer to chest wall'}]},
+  TR:{name:'Tricuspid regurgitation',short:"Pansystolic · Carvallo's sign · LLSB",tags:['Systolic','Pansystolic',"Carvallo's sign"],wave:{t:'pan',f:260,v:.6},ba:'tricuspid',bn:'Tricuspid area (LLSB)',bd:"LLSB 4th–5th ICS. Carvallo's sign: increases with inspiration.",rad:'May be heard over the liver.',rid:null,
+    mans:[{l:"Inspiration (Carvallo's sign)",e:'up',d:'↑ venous return → RV fills more → ↑ regurgitant volume'},{l:'Squatting',e:'up',d:'↑ preload → ↑ TR'},{l:'Expiration',e:'down',d:'↓ venous return → ↓ TR'}]},
+  TS:{name:'Tricuspid stenosis',short:'Diastolic rumble · louder with inspiration · LLSB',tags:['Diastolic','Right-sided','Rare'],wave:{t:'mdi',f:140,v:.45},ba:'tricuspid',bn:'Tricuspid area (LLSB)',bd:'LLSB 4th–5th ICS.',rad:'Does not radiate widely.',rid:null,
+    mans:[{l:'Inspiration',e:'up',d:'↑ venous return → more flow → louder rumble'},{l:'Expiration',e:'down',d:'↓ right heart filling → ↓ TS'}]},
+  HOCM:{name:'HOCM',short:'Ejection systolic · LLSB · opposite responses to most murmurs',tags:['Systolic','Dynamic obstruction','Opposite responses'],wave:{t:'ejs',f:260,v:.65},ba:'erbs',bn:"Erb's point / LLSB",bd:'Best at LLSB. Does not radiate to carotids — key difference from AS.',rad:'Does not radiate to carotids.',rid:null,
+    mans:[{l:'Valsalva / standing',e:'up',d:'↓ preload → LVOT narrows → ↑ obstruction → ↑ murmur (OPPOSITE to AS!)'},{l:'Squatting / leg raise',e:'down',d:'↑ preload → LVOT widens → ↓ obstruction → ↓ murmur (OPPOSITE to AS!)'},{l:'Handgrip',e:'down',d:'↑ afterload → ↑ LV size → ↓ LVOT obstruction'}]},
+  MVP:{name:'Mitral valve prolapse',short:'Mid-systolic click + late systolic murmur · click moves with position',tags:['Systolic','Click','Dynamic'],wave:{t:'mvp',f:310,v:.55},ba:'mitral',bn:'Mitral area (Apex)',bd:'Apex. The click moves with position changes.',rad:'Late systolic murmur may radiate to axilla.',rid:null,
+    mans:[{l:'Standing / Valsalva',e:'up',d:'↓ preload → smaller LV → earlier prolapse → click toward S1, murmur lengthens'},{l:'Squatting / leg raise',e:'down',d:'↑ preload → larger LV → later prolapse → click toward S2'},{l:'Handgrip',e:'up',d:'↑ afterload → murmur may increase'}]},
+  VSD:{name:'Ventricular septal defect',short:'Pansystolic · harsh · LLSB · palpable thrill',tags:['Systolic','Pansystolic','Congenital'],wave:{t:'pan',f:340,v:.75},ba:'erbs',bn:"Erb's point / LLSB",bd:'Loud pansystolic at LLSB. Palpable thrill often present.',rad:'Radiates across the entire precordium.',rid:null,
+    mans:[{l:'Handgrip',e:'up',d:'↑ LV–RV gradient → ↑ VSD'},{l:'Squatting',e:'up',d:'↑ afterload → ↑ VSD'},{l:'Valsalva',e:'down',d:'↓ preload → ↓ shunt volume'}]},
+  ASD:{name:'Atrial septal defect',short:'Fixed split S2 · pulmonary ejection systolic flow murmur',tags:['Systolic','Fixed split S2','Congenital'],wave:{t:'fxs',f:180,v:.5},ba:'pulmonary',bn:'Pulmonary area (L 2nd ICS)',bd:'Pulmonary area. Fixed splitting of S2 — does not vary with respiration.',rad:'Wide fixed split S2 is the hallmark.',rid:null,
+    mans:[{l:'Inspiration',e:'neutral',d:'Split remains FIXED — does not widen (key diagnostic feature)'},{l:'Expiration',e:'neutral',d:'Fixed split persists — distinguishes from physiological splitting'}]},
+  PDA:{name:'Patent ductus arteriosus',short:'Continuous machinery murmur · left infraclavicular',tags:['Continuous','Machinery','Congenital'],wave:{t:'cont',f:240,v:.6},ba:'pulmonary',bn:'Left infraclavicular / pulmonary area',bd:'Best at left infraclavicular area. Continuous through systole and diastole.',rad:'May radiate to the back.',rid:null,
+    mans:[{l:'Squatting',e:'up',d:'↑ afterload → ↑ aorto-pulmonary gradient → ↑ PDA'},{l:'Valsalva',e:'down',d:'↓ preload → ↓ PDA flow'}]},
+  GRAHAM_STEELL:{name:'Graham Steell murmur',short:'PR secondary to pulmonary hypertension · early diastolic',tags:['Diastolic','Pulmonary HTN'],wave:{t:'edi',f:210,v:.5},ba:'erbs',bn:"Erb's point (L 3rd ICS)",bd:"Left 3rd ICS. Caused by pulmonary hypertension dilating the pulmonary valve ring.",rad:'Does not radiate widely.',rid:null,
+    mans:[{l:'Lean forward + expiration',e:'up',d:'Brings pulmonary valve closer to chest wall'},{l:'Inspiration',e:'up',d:'↑ right-sided flow → ↑ Graham Steell'}]},
+  INNOCENT:{name:'Innocent flow murmur',short:'Soft ejection systolic · no radiation · disappears on standing',tags:['Systolic','Benign','Children / pregnancy'],wave:{t:'ejs',f:200,v:.35},ba:'pulmonary',bn:'Pulmonary area (L 2nd ICS)',bd:'Soft, musical. No thrill, no radiation, normal S2.',rad:'Does not radiate.',rid:null,
+    mans:[{l:'Standing',e:'down',d:'↓ preload → disappears — key distinguishing feature'},{l:'Lying flat',e:'up',d:'↑ preload → ↑ innocent murmur'},{l:'Exercise',e:'up',d:'↑ cardiac output → ↑ flow murmur'}]},
+  CAREY_COOMBS:{name:'Carey Coombs murmur',short:'Mid-diastolic · mitral valvulitis in acute rheumatic fever',tags:['Diastolic','Acute rheumatic fever','Transient'],wave:{t:'mdi',f:130,v:.45},ba:'mitral',bn:'Mitral area (Apex)',bd:'Apex. Transient mid-diastolic murmur from acute mitral valvulitis.',rad:'Does not radiate widely.',rid:null,
+    mans:[{l:'Left lateral decubitus',e:'up',d:'Rolls apex to chest wall'},{l:'Exercise',e:'up',d:'↑ flow → ↑ diastolic murmur'}]},
+  AUSTIN_FLINT:{name:'Austin Flint murmur',short:'Mid-diastolic rumble at apex in severe AR · functional',tags:['Diastolic','Severe AR','Functional'],wave:{t:'mdi',f:115,v:.42},ba:'mitral',bn:'Mitral area (Apex)',bd:'Apex. AR jet impinges on anterior mitral leaflet.',rad:'Does not radiate. Disappears with amyl nitrite — key distinction from true MS.',rid:null,
+    mans:[{l:'Lean forward + expiration',e:'up',d:'↑ AR (the cause) → ↑ Austin Flint rumble'},{l:'Amyl nitrite',e:'down',d:'↓ AR → Austin Flint disappears; true MS does not'},{l:'Left lateral decubitus',e:'up',d:'Brings apex closer to chest wall'}]},
+};
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let mode='learn';
+let activeArea=null, activeMurmur=null, learnStep=0;
+let qMid=null, qDone=false, qC=0, qT=0;
+let qActiveArea=null;  // which area is currently selected in quiz
+let qManBoost=1.0;     // volume multiplier from active manoeuvre in quiz
+
+let actx=null, anodes=[], gainNode=null, playing=false, pctx=null, manTmo=null;
+
+// ════════════════════════════════════════
+//  UNIFIED ZONE CLICK HANDLER
+// ════════════════════════════════════════
+function handleZoneClick(areaId){
+  if(mode==='learn') selectLearnArea(areaId);
+  else selectQuizArea(areaId);
+}
+
+// ════════════════════════════════════════
+//  MODE
+// ════════════════════════════════════════
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.mode-tab').forEach((t,i)=>t.classList.toggle('active',['learn','quiz'][i]===m));
+  ge('learn-mode').style.display=m==='learn'?'block':'none';
+  ge('quiz-mode').style.display=m==='quiz'?'block':'none';
+  if(m==='learn'){stopAudio();clrHL();}
+  else{
+    // entering quiz — stop learn audio, reset quiz state
+    stopLearnAudio();
+    qMid=null;qDone=false;qActiveArea=null;qManBoost=1.0;
+    ge('new-q-btn').style.display='inline-block';
+    ge('quiz-inner').innerHTML=`<div class="placeholder" style="padding:1.2rem 0">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      Press <strong>New murmur</strong> to begin, then tap areas on the chest to listen</div>`;
+
+    clrHL();
+    document.querySelectorAll('.azone').forEach(z=>z.classList.remove('active'));
+  }
+}
+
+// ════════════════════════════════════════
+//  LEARN MODE
+// ════════════════════════════════════════
+function selectLearnArea(id){
+  activeArea=id; activeMurmur=null;
+  stopLearnAudio(); clrHL();
+  document.querySelectorAll('.azone').forEach(z=>z.classList.remove('active'));
+  ge('zone-'+id).classList.add('active');
+  const a=AREAS[id];
+  ge('learn-ph').style.display='none';
+  ge('learn-content').style.display='block';
+  ge('l-adot').style.background=a.color;
+  ge('l-aname').textContent=a.name+' — '+a.loc;
+  ge('l-pills').innerHTML=a.murmurs.map(mid=>`<button class="mpill" id="pill-${mid}" onclick="selectMurmur('${mid}')">${M[mid].name}</button>`).join('');
+  ge('l-wt').style.display='none';
+  if(a.murmurs.length) selectMurmur(a.murmurs[0]);
+}
+
+function selectMurmur(mid){
+  activeMurmur=mid; learnStep=0;
+  stopLearnAudio(); clrHL();
+  document.querySelectorAll('.mpill').forEach(p=>p.classList.remove('active'));
+  const p=ge('pill-'+mid); if(p) p.classList.add('active');
+  const m=M[mid];
+  ge('l-mname').textContent=m.name;
+  ge('l-msub').textContent=m.short;
+  ge('l-mtags').innerHTML=m.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  ge('l-wt').style.display='block';
+  drawWave('lcanvas',m.wave,1); setVol('lvf','lvt',1);
+  const col=AREAS[m.ba]?AREAS[m.ba].color:'#1a5fa8';
+  const bc=ge('l-bacard');
+  bc.style.cssText=`border-radius:var(--r);padding:9px 12px;margin-bottom:8px;border:1px solid ${col}40;background:${col}10`;
+  ge('l-baname').style.color=col;
+  ge('l-baname').textContent=m.bn;
+  ge('l-badesc').textContent=m.bd;
+  ge('l-radtxt').textContent=m.rad;
+  renderMans('l-manlist','l-expl',m.mans,'l');
+  goStep(0);
+}
+
+function goStep(n){
+  learnStep=n;
+  document.querySelectorAll('.wtpanel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.wtsb').forEach((b,i)=>{b.classList.remove('active','done');if(i===n)b.classList.add('active');else if(i<n)b.classList.add('done');});
+  clrHL();
+  if(n===1&&activeMurmur){
+    const m=M[activeMurmur];
+    ge('zone-'+m.ba)?.classList.add('highlight');
+    if(m.rid) ge(m.rid)?.classList.add('show');
+  }
+  if(n===2){ge('l-expl').innerHTML='';document.querySelectorAll('[id^="l-man-"]').forEach(b=>b.classList.remove('active'));}
+}
+
+function toggleLearnPlay(){
+  if(playing&&pctx==='l'){stopLearnAudio();return;}
+  if(!activeMurmur) return;
+  const m=M[activeMurmur];
+  playAudio(m.wave,m.wave.v,activeMurmur,'l');
+}
+
+function stopLearnAudio(){
+  if(pctx==='l') stopAudio();
+}
+
+// ════════════════════════════════════════
+//  QUIZ MODE
+// ════════════════════════════════════════
+function newQuiz(){
+  // pick a random murmur from ALL murmurs
+  const allMids=Object.keys(M);
+  qMid=allMids[Math.floor(Math.random()*allMids.length)];
+  qDone=false; qActiveArea=null; qManBoost=1.0;
+  clrHL();
+  document.querySelectorAll('.azone').forEach(z=>z.classList.remove('active','playing'));
+  stopAudio();
+  ge('new-q-btn').style.display='none';
+
+  // render quiz inner
+  ge('quiz-inner').innerHTML=`
+    <div style="font-size:.72rem;color:var(--text2);margin-bottom:6px">Tap areas on the chest to listen — use the manoeuvre buttons for clues</div>
+    <canvas class="waveform" id="qcanvas"></canvas>
+    <div class="anote" style="margin-bottom:10px"><span class="andot"></span>Synthesised audio — replace with real files (see README)</div>
+    <div class="clabel">What murmur is this?</div>
+    <div class="ggrid" id="ggrid"></div>
+    <div id="qres"></div>`;
+
+  // build area grid
+  const vols=AREA_VOLS[qMid];
+  ge('q-area-grid').innerHTML=AREA_KEYS.map(k=>`
+    <button class="q-area-btn" id="qab-${k}" onclick="selectQuizArea('${k}')" style="border-color:${AREA_COLORS[k]}40">
+      <span style="color:${AREA_COLORS[k]};font-weight:500">${AREA_LABELS[k]}</span>
+      <span class="vol-pip" id="qpip-${k}" style="width:0%"></span>
+    </button>`).join('');
+
+  // build answer grid
+  const dist=Object.entries(M).filter(([k])=>k!==qMid).sort(()=>Math.random()-.5).slice(0,3);
+  ge('ggrid').innerHTML=[[qMid,M[qMid]],...dist].sort(()=>Math.random()-.5).map(([k,m])=>`<button class="gbtn" onclick="makeGuess('${k}','${qMid}')">${m.name}</button>`).join('');
+
+
+
+  // auto-select first area (best area) to start audio
+  // but don't reveal it — pick a random area to start on
+  const startArea=AREA_KEYS[Math.floor(Math.random()*AREA_KEYS.length)];
+  selectQuizArea(startArea);
+}
+
+function selectQuizArea(areaId){
+  if(mode!=='quiz'||!qMid) return;
+  qActiveArea=areaId;
+
+  // highlight active zone on body
+  document.querySelectorAll('.azone').forEach(z=>z.classList.remove('active'));
+  ge('zone-'+areaId)?.classList.add('active');
+
+  // calculate volume for this area
+  const baseVol=getQuizVol(areaId);
+  const finalVol=Math.min(baseVol*qManBoost,1.0);
+
+  // update waveform amplitude
+  drawWave('qcanvas',M[qMid].wave,finalVol);
+
+  // update audio — seamless gain change if already playing, otherwise start
+  if(playing&&pctx==='q'){
+    setGain(finalVol);
+    document.querySelectorAll('.azone').forEach(z=>z.classList.remove('playing'));
+    ge('zone-'+areaId)?.classList.add('playing');
+  } else {
+    playAudio(M[qMid].wave,finalVol,qMid,'q');
+  }
+}
+
+function getQuizVol(areaId){
+  const vols=AREA_VOLS[qMid];
+  return vols?vols[areaId]||0.1:0.5;
+}
+
+
+
+function makeGuess(gid,cid){
+  if(qDone) return;
+  qDone=true; qT++;
+  const ok=gid===cid; if(ok) qC++;
+  ge('qsc').textContent=qC; ge('qst').textContent=qT;
+  document.querySelectorAll('.gbtn').forEach(b=>{
+    const bid=b.getAttribute('onclick').match(/'([^']+)'/)[1];
+    if(bid===cid) b.classList.add('correct');
+    else if(bid===gid&&!ok) b.classList.add('wrong');
+    b.disabled=true;
+  });
+  ge('qres').innerHTML=`<div class="rbox ${ok?'correct':'wrong'}">${ok?'Correct!':'Incorrect.'} This is <strong>${M[cid].name}</strong>.<br><span style="font-size:.72rem;opacity:.85">${M[cid].short}</span></div>`;
+  ge('new-q-btn').style.display='inline-block';
+}
+
+// ════════════════════════════════════════
+//  MANOEUVRE PANELS
+// ════════════════════════════════════════
+function renderMans(lid,eid,mans,ctx){
+  const el=ge(lid); el._mans=mans;
+  el.innerHTML=mans.map((m,i)=>{
+    const bc=m.e==='up'?'up':m.e==='down'?'down':'neutral';
+    const bt=m.e==='up'?'↑ louder':m.e==='down'?'↓ softer':'→ no change';
+    return `<button class="manrow" id="${ctx}-man-${i}" onclick="toggleMan('${ctx}',${i})">${m.l}<span class="mb ${bc}" style="margin-left:8px">${bt}</span></button>`;
+  }).join('');
+  ge(eid).innerHTML='';
+}
+
+function toggleMan(ctx,i){
+  const el=ge(ctx+'-manlist');
+  const eid='l-expl';
+  const man=el._mans[i];
+  const was=ge(ctx+'-man-'+i).classList.contains('active');
+  document.querySelectorAll(`[id^="${ctx}-man-"]`).forEach(b=>b.classList.remove('active'));
+  if(was){
+    ge(eid).innerHTML='';
+    rstVol('l');
+    return;
+  }
+  ge(ctx+'-man-'+i).classList.add('active');
+  ge(eid).innerHTML=`<div class="explbox">${man.d}</div>`;
+  const v=man.e==='up'?1.0:man.e==='down'?0.22:0.65;
+  setVol('lvf','lvt',v);
+  drawWave('lcanvas',M[activeMurmur].wave,v);
+  if(playing&&pctx==='l') setGain(v);
+}
+
+function rstVol(ctx){
+  if(ctx==='l'){setVol('lvf','lvt',1);if(activeMurmur)drawWave('lcanvas',M[activeMurmur].wave,1);}
+}
+
+function setVol(fi,ti,v){
+  const fe=ge(fi); if(fe) fe.style.width=Math.round(Math.min(v,1)*100)+'%';
+  const te=ge(ti); if(te) te.textContent=v>=.9?'Loud':v>=.6?'Clear':v>=.35?'Faint':'Quiet';
+}
+
+// ════════════════════════════════════════
+//  GLOBAL MANOEUVRE ANIMATIONS
+// ════════════════════════════════════════
+function animBreath(sx,sy){ge('g-breath').style.transform=`scale(${sx},${sy})`}
+function animLean(s){ge('g-lean').style.transform=s?`skewX(${s}deg)`:'';}
+function animLLD(d){ge('g-lean').style.transform=d?`rotate(${d}deg)`:'';}
+function animSquat(b){
+  const td=b*38,sd=b*-70;
+  ge('g-leg-left').style.transform=`rotate(${td}deg)`;
+  ge('g-leg-right').style.transform=`rotate(${-td}deg)`;
+  ge('g-shin-left').style.transform=`rotate(${sd}deg)`;
+  ge('g-shin-right').style.transform=`rotate(${sd}deg)`;
+}
+function animStand(){['g-leg-left','g-leg-right','g-shin-left','g-shin-right'].forEach(id=>ge(id).style.transform='');}
+function showHG(on){ge('g-hg').style.opacity=on?1:0;}
+function showVF(on){ge('g-vf').style.opacity=on?1:0;}
+function showBadge(t){ge('badge-bg').setAttribute('opacity','1');ge('badge-txt').textContent=t;ge('badge-txt').setAttribute('opacity','1');}
+function hideBadge(){ge('badge-bg').setAttribute('opacity','0');ge('badge-txt').setAttribute('opacity','0');}
+function resetAnims(){animBreath(1,1);ge('g-lean').style.transform='';animStand();showHG(false);showVF(false);hideBadge();}
+
+const MDEFS={
+  inspire: {label:'Inspiring...',  start(){animBreath(1.06,1.04)}, end(){animBreath(1,1)}},
+  expire:  {label:'Expiring...',   start(){animBreath(.93,.97)},   end(){animBreath(1,1)}},
+  squat:   {label:'Squatting...',  start(){animSquat(1)},          end(){animSquat(0)}},
+  stand:   {label:'Standing...',   start(){animStand()},           end(){}},
+  valsalva:{label:'Valsalva...',   start(){animBreath(.90,.95);showVF(true)}, end(){animBreath(1,1);showVF(false)}},
+  lean:    {label:'Leaning fwd...', start(){animLean(-8)},          end(){animLean(0)}},
+  handgrip:{label:'Handgrip...',   start(){showHG(true)},          end(){showHG(false)}},
+  lld:     {label:'Left lat. dec.',start(){animLLD(12)},           end(){animLLD(0)}},
+};
+
+function triggerMan(key){
+  const def=MDEFS[key]; if(!def) return;
+  if(manTmo) clearTimeout(manTmo);
+  resetAnims();
+  document.querySelectorAll('[id^="gbtn-"]').forEach(b=>b.classList.remove('active'));
+  ge('gbtn-'+key)?.classList.add('active');
+  showBadge(def.label); def.start();
+
+  // apply effect to audio
+  if(mode==='learn'&&playing&&pctx==='l'&&activeMurmur){
+    const eff=getEff(key,activeMurmur);
+    const v=eff==='up'?1.0:eff==='down'?0.22:0.65;
+    setGain(v);
+    setTimeout(()=>{if(playing&&pctx==='l') setGain(M[activeMurmur].wave.v);},2400);
+  }
+  if(mode==='quiz'&&qMid&&qActiveArea){
+    const eff=getEff(key,qMid);
+    qManBoost=eff==='up'?1.4:eff==='down'?0.3:1.0;
+    selectQuizArea(qActiveArea);
+    setTimeout(()=>{qManBoost=1.0;if(qActiveArea) selectQuizArea(qActiveArea);},2400);
+  }
+
+  manTmo=setTimeout(()=>{def.end();hideBadge();document.querySelectorAll('[id^="gbtn-"]').forEach(b=>b.classList.remove('active'));},2400);
+}
+
+function getEff(key,mid){
+  const lmap={inspire:'nspir',expire:'xpir',squat:'quat',valsalva:'alsalva',lean:'ean',handgrip:'andgrip',lld:'eft lat',stand:'tand'};
+  const lbl=lmap[key]||'';
+  const m=M[mid]; if(!m) return 'neutral';
+  const match=m.mans.find(mn=>mn.l.toLowerCase().includes(lbl.toLowerCase()));
+  return match?match.e:'neutral';
+}
+
+// ════════════════════════════════════════
+//  WAVEFORM
+// ════════════════════════════════════════
+function drawWave(cid,wave,vol){
+  const c=ge(cid); if(!c) return;
+  const dpr=window.devicePixelRatio||1,w=c.offsetWidth||260,h=52;
+  c.width=w*dpr; c.height=h*dpr; c.style.width=w+'px'; c.style.height=h+'px';
+  const cx=c.getContext('2d'); cx.scale(dpr,dpr); cx.clearRect(0,0,w,h);
+  cx.strokeStyle='#1a5fa8'; cx.lineWidth=1.5;
+  const amp=(h/2-4)*Math.min(vol,1), mid=h/2;
+  cx.beginPath();
+  for(let x=0;x<w;x++){
+    const t=x/w,cy=t%0.8; let y=mid;
+    const tp=wave.t;
+    if(tp==='ejs'){if(cy<.38){const p=cy/.38;y=mid-amp*Math.sin(Math.PI*p)*(.7+.3*Math.sin(wave.f/60*Math.PI*p));}}
+    else if(tp==='pan'){if(cy<.44){const p=cy/.44;y=mid-amp*.85*Math.sin(wave.f/80*Math.PI*p)*Math.sin(1.2*Math.PI*p);}}
+    else if(tp==='edi'){if(cy>.42&&cy<.78){const p=(cy-.42)/.36;y=mid-amp*(1-p)*.9*Math.sin(wave.f/70*Math.PI*p);}}
+    else if(tp==='mdi'){if(cy>.5&&cy<.76){const p=(cy-.5)/.26;y=mid-amp*.65*Math.sin(Math.PI*p)*Math.sin(wave.f/90*Math.PI*p);}}
+    else if(tp==='fxs'){if(cy<.04||(cy>.38&&cy<.44)||(cy>.46&&cy<.52)){y=mid-amp*.55*Math.sin(wave.f/60*Math.PI*cy);}}
+    else if(tp==='mvp'){if(cy>.2&&cy<.44){const p=(cy-.2)/.24;y=mid-amp*.8*Math.sin(wave.f/70*Math.PI*p)*p;}}
+    else if(tp==='cont'){y=mid-amp*.55*Math.sin(wave.f/60*Math.PI*t)*(.6+.4*Math.sin(Math.PI*cy/.8));}
+    x===0?cx.moveTo(x,y):cx.lineTo(x,y);
+  }
+  cx.stroke();
+}
+
+// ════════════════════════════════════════
+//  AUDIO ENGINE
+// ════════════════════════════════════════
+function ge(id){return document.getElementById(id)}
+function initACtx(){
+  if(!actx) actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended') actx.resume();
+}
+function stopAudio(){
+  anodes.forEach(n=>{try{n.stop?n.stop():n.pause&&(n.pause(),n.currentTime=0);}catch(e){}});
+  anodes=[]; gainNode=null; playing=false;
+  updatePlayBtn('l',false); updatePlayBtn('q',false);
+  document.querySelectorAll('.azone').forEach(z=>z.classList.remove('playing'));
+}
+function playAudio(wave,vol,mid,ctx){
+  stopAudio();
+  initACtx();
+  pctx=ctx;
+  const file=AF[mid];
+  if(file){
+    const a=new Audio(file);
+    a.loop=true; a.volume=Math.min(vol,1);
+    a.play().catch(()=>{});
+    anodes.push(a);
+    // store ref so we can update volume
+    gainNode={_audio:a,gain:{value:vol}};
+  } else {
+    const gn=actx.createGain(); gn.gain.value=vol*.05; gn.connect(actx.destination);
+    gainNode=gn;
+    freqs(wave).forEach(f=>{
+      const o=actx.createOscillator(); o.type='sine'; o.frequency.value=f;
+      const mg=actx.createGain(); mg.gain.value=.3;
+      if(wave.t==='ejs'||wave.t==='pan'){
+        const lfo=actx.createOscillator(); lfo.frequency.value=1.4; lfo.connect(mg.gain); lfo.start(); anodes.push(lfo);
+      }
+      o.connect(mg); mg.connect(gn); o.start(); anodes.push(o);
+    });
+  }
+  playing=true;
+  updatePlayBtn(ctx,true);
+  if(ctx==='q'&&ge('zone-'+qActiveArea)) ge('zone-'+qActiveArea).classList.add('playing');
+}
+
+function setGain(vol){
+  if(!gainNode) return;
+  if(gainNode._audio){
+    gainNode._audio.volume=Math.min(vol,1);
+  } else {
+    gainNode.gain.setTargetAtTime(vol*.05,actx.currentTime,.05);
+  }
+}
+
+function freqs(w){
+  const b=w.f;
+  if(w.t==='mdi') return[b,b*1.5,b*2];
+  if(w.t==='edi') return[b,b*1.3,b*2.1];
+  if(w.t==='fxs') return[b*2,b*2.6];
+  if(w.t==='cont') return[b,b*1.4,b*2,b*3.2];
+  return[b,b*1.4,b*2.2,b*3.1];
+}
+
+function updatePlayBtn(ctx,on){
+  const b=ge(ctx+'pbtn'), i=ge(ctx+'pico');
+  if(b) b.classList.toggle('playing',on);
+  if(i) i.innerHTML=on?'<rect x="4" y="2" width="3" height="12"/><rect x="9" y="2" width="3" height="12"/>':'<polygon points="4,2 14,8 4,14"/>';
+}
+function updateQPlayBtn(on){updatePlayBtn('q',on);}
+
+function clrHL(){
+  document.querySelectorAll('.azone').forEach(z=>z.classList.remove('highlight'));
+  document.querySelectorAll('.radarr').forEach(a=>a.classList.remove('show'));
+}
+
+window.addEventListener('resize',()=>{
+  if(activeMurmur) drawWave('lcanvas',M[activeMurmur].wave,1);
+  if(qMid&&qActiveArea) drawWave('qcanvas',M[qMid].wave,getQuizVol(qActiveArea)*qManBoost);
+});
+</script>
+</body>
+</html>
